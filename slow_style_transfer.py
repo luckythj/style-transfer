@@ -6,7 +6,7 @@ import os
 from image_utils import load_image, preprocess_image, deprocess_image
 from utils import get_session
 from squeezenet import SqueezeNet
-from loss import content_loss, style_loss, tv_loss, gram_matrix, gram_matrix_vectorized
+from loss import content_loss, style_loss, tv_loss, gram_matrix
 import matplotlib.pyplot as plt
 
 def style_transfer(content_image, style_image, image_size, style_size, content_layer, content_weight,
