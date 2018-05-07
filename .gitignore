@@ -1,0 +1,6 @@
+*.ckpt*
+*.mat
+.DS_Store
+.pyc
+data/train2014
+__pycache__/
