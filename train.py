@@ -1,8 +1,8 @@
 import sys, os, pdb
 sys.path.insert(0, 'src')
 import argparse
-from utils import get_files
 from solver import optimize
+from image_utils import get_files
 
 CONTENT_WEIGHT = 7.5e0
 STYLE_WEIGHT = 1e2
@@ -12,6 +12,7 @@ LEARNING_RATE = 1e-3
 NUM_EPOCHS = 2
 CHECKPOINT_DIR = 'data/checkpoints/'
 CHECKPOINT_ITERATIONS = 10000
+PRINT_ITERATIONS = 1
 VGG_PATH = 'data/imagenet-vgg-verydeep-19.mat'
 SQUEEZE_PATH = 'data/squeezenet.ckpt'
 TRAIN_PATH = 'data/train2014'
@@ -60,6 +61,11 @@ def build_parser():
                         dest='checkpoint_iterations', help='checkpoint frequency',
                         metavar='CHECKPOINT_ITERATIONS',
                         default=CHECKPOINT_ITERATIONS)
+
+    parser.add_argument('--print-iterations', type=int,
+                        dest='print_iterations', help='print frequency',
+                        metavar='PRINT_ITERATIONS',
+                        default=PRINT_ITERATIONS)
 
     parser.add_argument('--vgg-path', type=str,
                         dest='vgg_path',
@@ -119,11 +125,11 @@ def main():
         "content_weight": 1,
         "style_weight": 1,
         "vgg_path": options.vgg_path,
-        # "loss_net_path": SQUEEZE_PATH,
         "tv_weight": 1,
         "slow": options.slow,
         "epochs": options.epochs,
-        "print_iterations": options.checkpoint_iterations,
+        "checkout_iterations": options.checkpoint_iterations,
+        "print_iterations": options.print_iterations,
         "batch_size": options.batch_size,
         "checkpoint_dir": options.checkpoint_dir,
         "learning_rate": options.learning_rate

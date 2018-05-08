@@ -2,12 +2,18 @@ import sys, os, pdb
 sys.path.insert(0, 'src')
 import tensorflow as tf
 import numpy as np
-import os
 from image_utils import load_image, preprocess_image, deprocess_image
-from utils import get_session
 from squeezenet import SqueezeNet
 from loss import content_loss, style_loss, tv_loss, gram_matrix
 import matplotlib.pyplot as plt
+
+def get_session():
+    """Create a session that dynamically allocates memory."""
+    # See: https://www.tensorflow.org/tutorials/using_gpu#allowing_gpu_memory_growth
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    session = tf.Session(config=config)
+    return session
 
 def style_transfer(content_image, style_image, image_size, style_size, content_layer, content_weight,
                    style_layers, style_weights, tv_weight, init_random = False):

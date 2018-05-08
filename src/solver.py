@@ -30,7 +30,8 @@ def get_session():
 
 def optimize(content_paths, style_path, 
         content_weight, style_weight, tv_weight,
-        vgg_path, epochs=2, print_iterations=1000, batch_size=4,
+        vgg_path, epochs=2, batch_size=4,
+        print_iterations=1, checkout_iterations=10000,
         checkpoint_dir='data/checkpoints/', slow=False, learning_rate=1e-3):
 
     style_img = load_image(style_path, size=STYLE_SIZE)
@@ -38,7 +39,7 @@ def optimize(content_paths, style_path,
     content_shape = (batch_size, IMAGE_SIZE, IMAGE_SIZE, CHANNEL_SIZE)
 
     style_target_features = []
-    with tf.Graph().as_default(), tf.Session() as sess:
+    with tf.Graph().as_default(), tf.device('/cpu:0'), tf.Session() as sess:
         # extract style features of style target
         style_image = tf.placeholder(tf.float32, shape=style_shape, name='style_image')
         style_image_pre = vgg.preprocess(style_image)
@@ -84,13 +85,18 @@ def optimize(content_paths, style_path,
                 # assert len(X_batch) == batch_size
                 train_step.run(feed_dict={X_content: X_batch})
 
-                # print
-                if iteration % print_iterations == 0:
-                    # print loss
-                    _T_content, _loss, _s_loss, _c_loss, _t_loss = sess.run([T_content, loss, s_loss, c_loss, t_loss], feed_dict={X_content: X_batch})
-                    print('Epoch %d, iteration %d: loss %s, s_loss %s, c_loss %s, t_loss %s'%(epoch, iteration, _loss, _s_loss, _c_loss, _t_loss))
+                is_last_iter = epoch == epochs-1 and iteration == iters_per_epoch-1
 
-                    # save checkpoint
+                # print
+                if iteration % print_iterations == 0 or is_last_iter:
+                    # _T_content, _loss, _s_loss, _c_loss, _t_loss = sess.run([T_content, loss, s_loss, c_loss, t_loss], feed_dict={X_content: X_batch})
+                    # print('Epoch %d, iteration %d: loss %s, s_loss %s, c_loss %s, t_loss %s'%(epoch, iteration, _loss, _s_loss, _c_loss, _t_loss))
+                    _loss = sess.run([loss], feed_dict={X_content: X_batch})
+                    print('Epoch %d, iteration %d: loss %s '%(epoch, iteration, _loss ))
+        
+                # save checkpoint
+                if iteration % checkout_iterations == 0 or is_last_iter:
                     saver = tf.train.Saver()
-                    saver.save(sess, os.path.join(checkpoint_dir,'checkpoint_epoch%d_iter%d.ckpt'%(epoch, iteration)))
+                    ckpt_suffix = '_final.ckpt' if is_last_iter else '_epoch%d_iter%d.ckpt'%(epoch, iteration)
+                    saver.save(sess, os.path.join(checkpoint_dir,'checkpoint'+ckpt_suffix))
 

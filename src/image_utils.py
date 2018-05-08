@@ -5,7 +5,7 @@ from builtins import range
 import urllib.request, urllib.error, urllib.parse, os, tempfile
 
 import numpy as np
-from scipy.misc import imread, imresize
+from scipy.misc import imread, imresize, imsave
 
 """
 Utility functions used for viewing and processing images.
@@ -96,9 +96,21 @@ def get_img(src, img_size=False):
        img = imresize(img, img_size)
    return img
 
-# def save_img(out_path, img):
-#     img = np.clip(img, 0, 255).astype(np.uint8)
-#     scipy.misc.imsave(out_path, img)
+def save_img(out_path, img):
+    img = np.clip(img, 0, 255).astype(np.uint8)
+    imsave(out_path, img)
+
+def list_files(in_path):
+    files = []
+    for (dirpath, dirnames, filenames) in os.walk(in_path):
+        files.extend(filenames)
+        break
+
+    return files
+
+def get_files(img_dir):
+    files = list_files(img_dir)
+    return [os.path.join(img_dir,x) for x in files]
 
 # def scale_img(style_path, style_scale):
 #     scale = float(style_scale)
