@@ -13,13 +13,10 @@ def content_loss(content_weight, content_current, content_original):
     - scalar content loss [N,]
     """
     shapes = tf.shape(content_current)
-    
     N,H,W,C = shapes[0], shapes[1], shapes[2], shapes[3] 
     
-    F_l = tf.reshape(content_current, [N, C, H * W])
-    P_l = tf.reshape(content_original, [N, C, H * W])
-    
-    loss = content_weight * tf.reduce_sum(tf.square(F_l - P_l), axis=[1,2])
+    loss = content_weight * tf.reduce_sum(tf.square(content_current - content_original), axis=[1,2,3]) 
+    loss /= tf.cast(H*W*C, tf.float32) # normalize it by default
     
     return loss
 
@@ -82,10 +79,12 @@ def style_loss(feats, style_layers, style_targets, style_weights):
     
     # Compute style loss for each desired feature layer and then sum.
     for i in range(len(style_layers)):
-        im_gram_l = gram_matrix(feats[style_layers[i]]) # [N, C, C]
-        style_loss += style_weights[i] * tf.reduce_sum(tf.square(im_gram_l - style_targets[i]))
-        
-    return style_loss    
+        style_gram_l = style_targets[i] # [1, C, C]
+        cur_gram_l = gram_matrix(feats[style_layers[i]]) # [N, C, C]
+        style_loss_l = style_weights[i] * tf.reduce_sum(tf.square(cur_gram_l - style_gram_l), axis=[1,2])
+        style_loss_l /= style_gram_l.size # normalize it
+        style_loss += style_loss_l
+    return style_loss
 
 
 def tv_loss(img, tv_weight):
@@ -101,8 +100,15 @@ def tv_loss(img, tv_weight):
       for img weighted by tv_weight. [N,]
     """
     # Your implementation should be vectorized and not require any loops!  
-    w_variance = tf.reduce_sum(tf.square(img[:,:,1:,:] - img[:,:,:-1,:]), axis=[1,2,3])
-    h_variance = tf.reduce_sum(tf.square(img[:,1:,:,:] - img[:,:-1,:,:]), axis=[1,2,3])
+    shapes = tf.shape(img)
+    N,H,W,C = shapes[0], shapes[1], shapes[2], shapes[3]
+
+    w_variance = tf.reduce_sum(tf.square(img[:,:,1:,:] - img[:,:,:-1,:]), axis=[1,2,3]) #[N, H, W-1, C] -> [N,]
+    w_variance /= tf.cast(H*(W-1)*C, tf.float32) 
+
+    h_variance = tf.reduce_sum(tf.square(img[:,1:,:,:] - img[:,:-1,:,:]), axis=[1,2,3]) #[N, H-1, W, C] -> [N,]
+    h_variance /= tf.cast((H-1)*W*C, tf.float32) 
+
     loss = tv_weight * (w_variance + h_variance)
-    
+
     return loss
