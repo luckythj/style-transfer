@@ -7,34 +7,23 @@ from image_utils import load_image, get_img
 from loss import style_loss, content_loss, tv_loss, gram_matrix
 
 # vgg net
-STYLE_LAYERS = ('relu1_1', 'relu2_1', 'relu3_1', 'relu4_1', 'relu5_1')
-STYLE_WEIGHTS = (1e6, 1e3, 1e2, 1e1, 1)
+STYLE_LAYERS = ['relu1_1', 'relu2_1', 'relu3_1', 'relu4_1', 'relu5_1']
+STYLE_WEIGHTS = [1, 1, 1, 1, 1]
 # STYLE_WEIGHTS = (300000, 1000, 15, 3, 1)
 CONTENT_LAYER = 'relu4_2'
 
-STYLE_SIZE = 56
-IMAGE_SIZE = 56
+STYLE_SIZE = 256
+IMAGE_SIZE = 256
 CHANNEL_SIZE = 3
-
-
-
-
-
-def get_session():
-    """Create a session that dynamically allocates memory."""
-    # See: https://www.tensorflow.org/tutorials/using_gpu#allowing_gpu_memory_growth
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    session = tf.Session(config=config)
-    return session
 
 def optimize(content_paths, style_path, 
         content_weight, style_weight, tv_weight,
         vgg_path, epochs=2, batch_size=4,
         print_iterations=1, checkout_iterations=10000,
-        checkpoint_dir='data/checkpoints/', slow=False, learning_rate=1e-3):
+        checkpoint_dir='data/checkpoints/', learning_rate=1e-3):
 
-    style_img = load_image(style_path, size=STYLE_SIZE)
+    # style_img = load_image(style_path, size=STYLE_SIZE)
+    style_img = get_img(style_path, [STYLE_SIZE,STYLE_SIZE,CHANNEL_SIZE])
     style_shape = (1, ) + style_img.shape
     content_shape = (batch_size, IMAGE_SIZE, IMAGE_SIZE, CHANNEL_SIZE)
 
@@ -65,9 +54,15 @@ def optimize(content_paths, style_path,
         feats = vgg.net(vgg_path, T_content_pre)
 
         # loss
-        s_loss = style_loss(feats, STYLE_LAYERS, style_target_features, STYLE_WEIGHTS)
+
+        s_loss = style_loss(feats, STYLE_LAYERS, style_target_features, np.array(STYLE_WEIGHTS) * style_weight)
         c_loss = content_loss(content_weight, feats[CONTENT_LAYER], X_content_target_feature)
         t_loss = tv_loss(T_content_pre, tv_weight)
+
+        s_loss = tf.reduce_sum(s_loss)/batch_size 
+        c_loss = tf.reduce_sum(c_loss)/batch_size
+        t_loss = tf.reduce_sum(t_loss)/batch_size
+
         loss = s_loss + c_loss + t_loss
 
         # train
@@ -82,17 +77,15 @@ def optimize(content_paths, style_path,
                 for i, img_path in enumerate(content_paths[batch_start:batch_end]):
                     X_batch[i] = get_img(img_path, [IMAGE_SIZE, IMAGE_SIZE, CHANNEL_SIZE])
                     
-                # assert len(X_batch) == batch_size
+                assert len(X_batch) == batch_size
                 train_step.run(feed_dict={X_content: X_batch})
 
                 is_last_iter = epoch == epochs-1 and iteration == iters_per_epoch-1
 
                 # print
                 if iteration % print_iterations == 0 or is_last_iter:
-                    # _T_content, _loss, _s_loss, _c_loss, _t_loss = sess.run([T_content, loss, s_loss, c_loss, t_loss], feed_dict={X_content: X_batch})
-                    # print('Epoch %d, iteration %d: loss %s, s_loss %s, c_loss %s, t_loss %s'%(epoch, iteration, _loss, _s_loss, _c_loss, _t_loss))
-                    _loss = sess.run([loss], feed_dict={X_content: X_batch})
-                    print('Epoch %d, iteration %d: loss %s '%(epoch, iteration, _loss ))
+                    _T_content, _loss, _s_loss, _c_loss, _t_loss, _feats = sess.run([T_content, loss, s_loss, c_loss, t_loss, feats], feed_dict={X_content: X_batch})
+                    print('Epoch %d, iteration %d: loss %s, s_loss %s, c_loss %s, t_loss %s'%(epoch, iteration, _loss, _s_loss, _c_loss, _t_loss))
         
                 # save checkpoint
                 if iteration % checkout_iterations == 0 or is_last_iter:

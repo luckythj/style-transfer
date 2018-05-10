@@ -1,0 +1,12 @@
+python train.py \
+  --style styles/wave.jpg \
+  --checkpoint-iterations 1000 \
+  --print-iterations 1\
+  --batch-size 2 \
+  --epochs 2 \
+  --content-weight 1.5e1 \
+  --style-weight 1e2 \
+  --tv-weight 2e2 \
+  --checkpoint-dir 'data/checkpoints/' \
+  --vgg-path 'data/imagenet-vgg-verydeep-19.mat' \
+  --train-path 'data/train2014'

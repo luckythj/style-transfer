@@ -7,20 +7,14 @@ from image_utils import get_files
 CONTENT_WEIGHT = 7.5e0
 STYLE_WEIGHT = 1e2
 TV_WEIGHT = 2e2
-
 LEARNING_RATE = 1e-3
 NUM_EPOCHS = 2
 CHECKPOINT_DIR = 'data/checkpoints/'
 CHECKPOINT_ITERATIONS = 10000
-PRINT_ITERATIONS = 1
+PRINT_ITERATIONS = 10
 VGG_PATH = 'data/imagenet-vgg-verydeep-19.mat'
-SQUEEZE_PATH = 'data/squeezenet.ckpt'
 TRAIN_PATH = 'data/train2014'
-BATCH_SIZE = 3
-DEVICE = '/gpu:0'
-FRAC_GPU = 1
-
-TEST = 'data/test.jpg'
+BATCH_SIZE = 20
 
 def build_parser():
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -36,18 +30,6 @@ def build_parser():
     parser.add_argument('--train-path', type=str,
                         dest='train_path', help='path to training images folder',
                         metavar='TRAIN_PATH', default=TRAIN_PATH)
-
-    parser.add_argument('--test', type=str,
-                        dest='test', help='test image path',
-                        metavar='TEST', default=False)
-
-    parser.add_argument('--test-dir', type=str,
-                        dest='test_dir', help='test image save dir',
-                        metavar='TEST_DIR', default=False)
-
-    parser.add_argument('--slow', dest='slow', action='store_true',
-                        help='gatys\' approach (for debugging, not supported)',
-                        default=False)
 
     parser.add_argument('--epochs', type=int,
                         dest='epochs', help='num epochs',
@@ -94,13 +76,10 @@ def build_parser():
     return parser
 
 def check_opts(opts):
-    exists(opts.checkpoint_dir, "checkpoint dir not found!")
-    exists(opts.style, "style path not found!")
-    exists(opts.train_path, "train path not found!")
-    if opts.test or opts.test_dir:
-        exists(opts.test, "test img not found!")
-        exists(opts.test_dir, "test directory not found!")
-    exists(opts.vgg_path, "vgg network data not found!")
+    assert os.path.exists(opts.checkpoint_dir), 'checkpoint dir not found!'
+    assert os.path.exists(opts.style), 'style path not found!'
+    assert os.path.exists(opts.train_path), 'train path not found!'
+    assert os.path.exists(opts.vgg_path), 'vgg network data not found!'
     assert opts.epochs > 0
     assert opts.batch_size > 0
     assert opts.checkpoint_iterations > 0
@@ -113,20 +92,14 @@ def check_opts(opts):
 def main():
     parser = build_parser()
     options = parser.parse_args()
-
-    # print(content_targets)
-
-    # Step1. prepare input
-    content_paths = get_files(TRAIN_PATH)
-
+    content_paths = get_files(options.train_path)
     kwargs = {
         "content_paths": content_paths,
         "style_path": options.style,
-        "content_weight": 1,
-        "style_weight": 1,
+        "content_weight": options.content_weight,
+        "style_weight": options.style_weight,
         "vgg_path": options.vgg_path,
-        "tv_weight": 1,
-        "slow": options.slow,
+        "tv_weight": options.tv_weight,
         "epochs": options.epochs,
         "checkout_iterations": options.checkpoint_iterations,
         "print_iterations": options.print_iterations,
@@ -135,18 +108,7 @@ def main():
         "learning_rate": options.learning_rate
     }
 
-
-    # Step2. minimize loss
     optimize(**kwargs)
 
-
-
-    
-
-
-
-
-
-    
-
-main()
+if __name__ == "__main__":
+    main()
