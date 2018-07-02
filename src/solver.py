@@ -73,6 +73,7 @@ def optimize(content_paths, style_path,
             for iteration in range(iters_per_epoch):
                 batch_start = batch_size * iteration
                 batch_end = batch_start + batch_size
+                # TODO need to shuffle data for each epoch !!
                 X_batch = np.zeros(content_shape, dtype=np.float32)
                 for i, img_path in enumerate(content_paths[batch_start:batch_end]):
                     X_batch[i] = get_img(img_path, [IMAGE_SIZE, IMAGE_SIZE, CHANNEL_SIZE])
